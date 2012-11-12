@@ -13,6 +13,6 @@ REQUIRE: 2.2201
 
 void
 DESTROY(self)
-    quant_est* self
+    quant_est_t *self
   CODE:
 

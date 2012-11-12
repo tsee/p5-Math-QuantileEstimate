@@ -35,6 +35,11 @@ Constructor.
 
 =head1 SEE ALSO
 
+The algorithm implemented here is following:
+Qi Zhang and Wei Wang, "A Fast Algorithm for Approximate Quantiles in High Speed Data Streams",
+19th International Conference on Scientific and Statistical Database Management (SSDBM 2007)
+
+Other algorithms (with different space/time trade-off):
 Michael Greenwald and Sanjeev Khanna, "Space-Efﬁcient Online Computation of Quantile Summaries",
 at SIGMOD (2001), p. 58-66.
 
