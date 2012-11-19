@@ -44,16 +44,20 @@ basic_summary_tests()
 
     for (i = 1; i <= n; ++i) {
         j = summary_rank_binsearch(s, i);
-#define CHECK_RANK_RESULT(msg) \
-        /* Assert index = rank-1 */ \
-        is_int_m(j, i-1, "Base level summary: rank-1 is same as index (" msg ")"); \
-            \
-        /* Assert rank relationships */ \
-        ok_m(s->tuples[j].lower_rank <= s->tuples[j].upper_rank, "Rank range for item is sane"); \
-        if (j != 0) { \
-            ok_m(s->tuples[j].value >= s->tuples[j-1].value, "Value monotonically increasing"); \
-            ok_m(s->tuples[j].lower_rank > s->tuples[j-1].upper_rank, "Rank strictly monotonically increasing"); \
+
+#define CHECK_RANK_RESULT(msg)                                                      \
+        /* Assert index = rank-1 */                                                 \
+        is_int_m(j, i-1, "Base level summary: rank-1 is same as index (" msg ")");  \
+        /* Assert rank relationships */                                             \
+        ok_m(s->tuples[j].lower_rank <= s->tuples[j].upper_rank,                    \
+             "Rank range for item is sane");                                        \
+        if (j != 0) {                                                               \
+            ok_m(s->tuples[j].value >= s->tuples[j-1].value,                        \
+                 "Value monotonically increasing");                                 \
+            ok_m(s->tuples[j].lower_rank > s->tuples[j-1].upper_rank,               \
+                 "Rank strictly monotonically increasing");                         \
         }
+
         CHECK_RANK_RESULT("summary_rank_binsearch")
 
         /* Test O(1) variant of summary_quantile_query */
@@ -62,6 +66,8 @@ basic_summary_tests()
         is_int_m(t->lower_rank, t->upper_rank, "Upper/lower ranks are identical");
         j = t->lower_rank-1;
         CHECK_RANK_RESULT("summary_quantile_query")
+
+#undef CHECK_RANK_RESULT
     }
 
 
