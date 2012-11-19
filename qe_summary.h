@@ -25,8 +25,18 @@ int summary_insert(qe_summary_t *summary, qe_float value);
 void summary_free(qe_summary_t *summary);
 void summary_sort(qe_summary_t *summary);
 void summary_compress(qe_summary_t *summary, qe_uint b);
+qe_tuple_t *summary_quantile_query(qe_summary_t *summary, qe_uint rank);
 
 /* tentative */
 QEINLINE qe_uint summary_rank_binsearch(qe_summary_t *summary, qe_uint rank);
+
+
+/* Getting/setting summary flags */
+#define QE_SUMMARY_F_SORTED 1
+#define QE_SUMMARY_F_COMPRESSED 2
+
+#define QE_SUMMARY_GET_FLAG(summary, flag) ((summary)->flags & (flag))
+#define QE_SUMMARY_RESET_FLAG(summary, flag) ((summary)->flags &= ~(flag))
+#define QE_SUMMARY_SET_FLAG(summary, flag) ((summary)->flags |= (flag))
 
 #endif

@@ -1,13 +1,6 @@
 #include "qe_summary.h"
 #include <stdlib.h>
 
-#define QE_SUMMARY_F_SORTED 1
-#define QE_SUMMARY_F_COMPRESSED 2
-
-#define QE_SUMMARY_GET_FLAG(summary, flag) ((summary)->flags & (flag))
-#define QE_SUMMARY_RESET_FLAG(summary, flag) ((summary)->flags &= ~(flag))
-#define QE_SUMMARY_SET_FLAG(summary, flag) ((summary)->flags |= (flag))
-
 static QEINLINE void summary_empty(qe_summary_t *summary);
 
 int
