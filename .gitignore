@@ -14,3 +14,5 @@ META.json
 MYMETA.yml
 MYMETA.json
 ctest/100c_summary
+USE_VALGRIND
+USE_GDB
