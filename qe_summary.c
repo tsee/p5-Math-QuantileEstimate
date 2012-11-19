@@ -108,6 +108,12 @@ summary_quantile_query(qe_summary_t *summary, qe_uint r)
     (void)memcpy(dest, src, sizeof(struct qe_tuple_t))
 
 
+/*
+ * The following binsearch function taken from libgit2 sources and modified:
+ *
+ * An array-of-pointers implementation of Python's Timsort
+ * Based on code by Christopher Swenson under the MIT license
+ */
 qe_uint
 summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
 {
@@ -127,7 +133,6 @@ summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
     else if (rank >= tuples[r].lower_rank)
         return r;
 
-    /* guaranteed not to be >= rx */
     cx = &tuples[c];
     while (1) {
         const int val = rank < cx->lower_rank ? -1 : rank > cx->upper_rank ? 1 : 0;
