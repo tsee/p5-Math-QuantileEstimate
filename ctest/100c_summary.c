@@ -86,6 +86,7 @@ main ()
         is_int_m(tuples[j].upper_rank, upper_ranks[4], "Base level summary: upper rank according to rank table (8)");
     }
 
+    summary_free(s);
     ok_m(1, "alive");
     done_testing();
     return 0;

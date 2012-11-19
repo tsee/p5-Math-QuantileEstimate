@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #define QE_SUMMARY_F_SORTED 1
+#define QE_SUMMARY_F_COMPRESSED 2
 
 #define QE_SUMMARY_GET_FLAG(summary, flag) ((summary)->flags & (flag))
 #define QE_SUMMARY_RESET_FLAG(summary, flag) ((summary)->flags &= ~(flag))
@@ -92,21 +93,8 @@ summary_compress(qe_summary_t *summary, qe_uint b)
     if (!QE_SUMMARY_GET_FLAG(summary, QE_SUMMARY_F_SORTED))
         summary_sort(summary);
 
-    
+    /* TODO */
 }
-
-static QEINLINE qe_tuple_t *
-summary_quantile_query(qe_summary_t *summary, qe_uint r)
-{
-    if (!QE_SUMMARY_GET_FLAG(summary, QE_SUMMARY_F_SORTED))
-        summary_sort(summary);
-
-    
-}
-
-#define QE_TUPLE_CP(src, dest) \
-    (void)memcpy(dest, src, sizeof(struct qe_tuple_t))
-
 
 /*
  * The following binsearch function taken from libgit2 sources and modified:
@@ -114,7 +102,7 @@ summary_quantile_query(qe_summary_t *summary, qe_uint r)
  * An array-of-pointers implementation of Python's Timsort
  * Based on code by Christopher Swenson under the MIT license
  */
-qe_uint
+QEINLINE qe_uint
 summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
 {
     int l, c, r;
@@ -150,4 +138,33 @@ summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
         cx = &tuples[c];
     }
 }
+
+
+qe_tuple_t *
+summary_quantile_query(qe_summary_t *summary, qe_uint rank)
+{
+    if (!QE_SUMMARY_GET_FLAG(summary, QE_SUMMARY_F_SORTED))
+        summary_sort(summary);
+
+    /* If this quantile was never compressed before, all ranks are
+     * exact and we can do O(1) direct access. */
+    if (!QE_SUMMARY_GET_FLAG(summary, QE_SUMMARY_F_COMPRESSED)) {
+        if (rank < 1 || rank > summary->pos)
+            return NULL;
+        return &summary->tuples[rank-1];
+    }
+    else {
+        /* O(log(size)) binary search */
+        const qe_uint i = summary_rank_binsearch(summary, rank);
+        qe_tuple_t *t = &summary->tuples[i];
+        if (    (i == 0 && rank < t->lower_rank)
+             || (i == summary->pos && rank > t->upper_rank) )
+            return NULL;
+        return t;
+    }
+}
+
+#define QE_TUPLE_CP(src, dest) \
+    (void)memcpy(dest, src, sizeof(struct qe_tuple_t))
+
 

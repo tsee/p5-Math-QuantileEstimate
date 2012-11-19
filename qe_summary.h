@@ -27,6 +27,6 @@ void summary_sort(qe_summary_t *summary);
 void summary_compress(qe_summary_t *summary, qe_uint b);
 
 /* tentative */
-qe_uint summary_rank_binsearch(qe_summary_t *summary, qe_uint rank);
+QEINLINE qe_uint summary_rank_binsearch(qe_summary_t *summary, qe_uint rank);
 
 #endif
