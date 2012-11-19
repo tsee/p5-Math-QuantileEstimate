@@ -40,14 +40,18 @@ summary_create(qe_uint size)
     s = (qe_summary_t *)malloc(sizeof(qe_summary_t));
     if (s == NULL)
         return NULL;
-    s->size = size;
-    s->pos = 0;
+
     s->tuples = (qe_tuple_t *)malloc(sizeof(qe_tuple_t) * size);
     if (s->tuples == NULL) {
         free(s);
         return NULL;
     }
+
+    s->size = size;
+    s->pos = 0;
+    /* Starts out not sorted and not compressed */
     s->flags = 0;
+
     return s;
 }
 
@@ -87,6 +91,7 @@ summary_compress(qe_summary_t *summary, qe_uint b)
         summary_sort(summary);
 
     /* TODO */
+    QE_SUMMARY_SET_FLAG(summary, QE_SUMMARY_F_COMPRESSED);
 }
 
 /*
