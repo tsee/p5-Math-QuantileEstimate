@@ -118,7 +118,17 @@ basic_summary_tests()
         is_int_m(tuples[j].upper_rank, upper_ranks[4], "Base level summary: upper rank according to rank table (8)");
     }
 
-    
+    /* Revert the manual rank changes */
+    for (i = 0; i < n; ++i) {
+        tuples[i].lower_rank = i+1;
+        tuples[i].upper_rank = i+1;
+    }
+    /*
+    summary_insert(s, 1000.);
+    summary_sort(s);
+    */
+    summary_compress(s, 2);
 
     summary_free(s);
 }
+
