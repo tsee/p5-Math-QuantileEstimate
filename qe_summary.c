@@ -18,10 +18,6 @@ summary_insert(qe_summary_t *summary, qe_float v)
     if (summary->pos == summary->size)
         return QE_ERROR_FULL;
 
-    tuple = (qe_tuple_t *)malloc(sizeof(qe_tuple_t));
-    if (tuple == NULL)
-        return QE_ERROR_OOM;
-
     tuple = &summary->tuples[summary->pos++];
     tuple->value = v;
 
