@@ -27,6 +27,8 @@ void summary_sort(qe_summary_t *summary);
 int summary_compress(qe_summary_t *summary, qe_uint b);
 qe_tuple_t *summary_quantile_query(qe_summary_t *summary, qe_uint rank);
 
+qe_summary_t *summary_combine(qe_summary_t *s1, qe_summary_t *s2);
+
 /* tentative */
 QEINLINE qe_uint summary_rank_binsearch(qe_summary_t *summary, qe_uint rank);
 

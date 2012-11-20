@@ -2,16 +2,19 @@
 #include <stdlib.h>
 #include <quant_est.h>
 #include <qe_summary.h>
+#include <assert.h>
 
 #include "mytap.h"
 
 void basic_summary_tests();
+void summary_combine_tests();
 
 int
 main ()
 {
     basic_summary_tests();
 
+    summary_combine_tests();
     ok_m(1, "alive");
     done_testing();
     return 0;
@@ -132,3 +135,66 @@ basic_summary_tests()
     summary_free(s);
 }
 
+
+#define SET_NEXT_TUPLE(t, v, l, u)   \
+    STMT_START {                     \
+        (t)->value      = (v);       \
+        (t)->lower_rank = (l);       \
+        (t)->upper_rank = (u);       \
+        (t)++;                       \
+    } STMT_END
+
+#define CHECK_TUPLE(t, i, v, l, u)                                      \
+    STMT_START {                                                        \
+        printf("# Checking output tuple %lu\n", (unsigned long) (i));   \
+        is_double_m(1e-6, (t)[i].value, (v), "Check value");            \
+        is_int_m((t)[i].lower_rank, (l), "Check lower rank");           \
+        is_int_m((t)[i].upper_rank, (u), "Check upper rank");           \
+    } STMT_END
+void
+summary_combine_tests()
+{
+    const qe_uint n = 4;
+    qe_summary_t *s1, *s2, *sout;
+    qe_tuple_t *t1, *t2, *tout;
+
+    s1 = summary_create(n);
+    assert(s1);
+    s2 = summary_create(n);
+    assert(s2);
+
+    t1 = s1->tuples;
+    t2 = s2->tuples;
+
+    SET_NEXT_TUPLE(t1, 2., 1, 1);
+    SET_NEXT_TUPLE(t1, 4., 3, 4);
+    SET_NEXT_TUPLE(t1, 8., 5, 6);
+    SET_NEXT_TUPLE(t1, 17., 8, 8);
+
+    SET_NEXT_TUPLE(t2, 1., 1, 1);
+    SET_NEXT_TUPLE(t2, 7., 3, 3);
+    SET_NEXT_TUPLE(t2, 12., 5, 6);
+    SET_NEXT_TUPLE(t2, 15., 8, 8);
+
+    /* all filled up */
+    s1->pos = s2->pos = n;
+
+    /* shouldn't do anything due to how we filled manually... */
+    summary_sort(s1);
+    summary_sort(s2);
+
+    sout = summary_combine(s1, s2);
+    tout = sout->tuples;
+    CHECK_TUPLE(tout, 0, 1., 1, 1);
+    CHECK_TUPLE(tout, 1, 2., 2, 2);
+    CHECK_TUPLE(tout, 2, 4., 4, 6);
+    CHECK_TUPLE(tout, 3, 7., 6, 8);
+    CHECK_TUPLE(tout, 4, 8., 8, 11);
+    CHECK_TUPLE(tout, 5, 12., 10, 13);
+    CHECK_TUPLE(tout, 6, 15., 13, 15);
+    CHECK_TUPLE(tout, 7, 17., 16, 16);
+
+    summary_free(s1);
+    summary_free(s2);
+    summary_free(sout);
+}

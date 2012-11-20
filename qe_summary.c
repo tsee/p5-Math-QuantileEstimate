@@ -92,7 +92,7 @@ summary_compress(qe_summary_t *summary, qe_uint b)
     double factor;
     qe_tuple_t *tpl;
     qe_tuple_t *out_tuples;
-    qe_uint out_pos, out_size, prev_rank, i, n;
+    qe_uint out_pos, out_size, prev_rank, i;
 
     assert(b != 0);
 
@@ -204,4 +204,85 @@ summary_quantile_query(qe_summary_t *summary, qe_uint rank)
     }
 }
 
+
+qe_summary_t *
+summary_combine(qe_summary_t *s1, qe_summary_t *s2)
+{
+    qe_uint i1, i2;
+    qe_tuple_t *out_tuple;
+    const qe_uint n1 = s1->pos;
+    const qe_uint n2 = s2->pos;
+    const qe_uint ntot = n1+n2;
+    const qe_tuple_t *tuples1 = s1->tuples;
+    const qe_tuple_t *tuples2 = s2->tuples;
+    qe_summary_t *stot = summary_create(ntot);
+    if (stot == NULL)
+        return NULL;
+    out_tuple = stot->tuples;
+    stot->pos = ntot; /* will be full when we're done! */
+    i1 = i2 = 0;
+
+    if (!QE_SUMMARY_GET_FLAG(s1, QE_SUMMARY_F_SORTED))
+        summary_sort(s1);
+    if (!QE_SUMMARY_GET_FLAG(s2, QE_SUMMARY_F_SORTED))
+        summary_sort(s2);
+
+    while (i1 < n1 || i2 < n2) {
+        if (i2 == n2 || tuples1[i1].value <= tuples2[i2].value) {
+            /* Next element taken from s1 */
+            const qe_tuple_t *x = &tuples1[i1];
+            out_tuple->value = x->value;
+            if (i2 == 0) {
+                /* no value in s2 smaller than this */
+                out_tuple->lower_rank = x->lower_rank;
+                /* Kind of assumes that the summaries aren't empty: */
+                out_tuple->upper_rank = x->upper_rank + tuples2[i2].upper_rank;
+            }
+            else if (i2 == n2) { /* s2 done */
+                /* prev value of s2 smaller than this,
+                 * no more upcoming values of s2 */
+                out_tuple->lower_rank = x->lower_rank + tuples2[i2-1].lower_rank;
+                out_tuple->upper_rank = x->upper_rank + tuples2[i2-1].upper_rank;
+            }
+            else {
+                /* prev value of s2 smaller than this,
+                 * upcoming value of s2 larger than this */
+                out_tuple->lower_rank = x->lower_rank + tuples2[i2-1].lower_rank;
+                out_tuple->upper_rank = x->upper_rank + tuples2[i2].upper_rank - 1;
+            }
+            ++i1;
+        }
+        else {
+            /* Next element taken from s2 */
+            const qe_tuple_t *x = &tuples2[i2];
+            out_tuple->value = x->value;
+            if (i1 == 0) {
+                /* no value in s1 smaller than this */
+                out_tuple->lower_rank = x->lower_rank;
+                /* Kind of assumes that the summaries aren't empty: */
+                out_tuple->upper_rank = x->upper_rank + tuples1[i1].upper_rank;
+            }
+            else if (i1 == n1) { /* s1 done */
+                /* prev value of s1 smaller than this,
+                 * no more upcoming values of s1 */
+                out_tuple->lower_rank = x->lower_rank + tuples1[i1-1].lower_rank;
+                out_tuple->upper_rank = x->upper_rank + tuples1[i1-1].upper_rank;
+            }
+            else {
+                /* prev value of s1 smaller than this,
+                 * upcoming value of s1 larger than this */
+                out_tuple->lower_rank = x->lower_rank + tuples1[i1-1].lower_rank;
+                out_tuple->upper_rank = x->upper_rank + tuples1[i1].upper_rank - 1;
+            }
+            ++i2;
+        }
+        out_tuple++;
+    }
+
+    /* FIXME When one or the other streams are exhausted, we do not need to
+     *       repeatedly check them and can break the main while loop and
+     *       go into a special purpose loop to finish up. */
+
+    return stot;
+}
 
