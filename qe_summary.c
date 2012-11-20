@@ -1,5 +1,12 @@
 #include "qe_summary.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
+#include <string.h>
+
+#define QE_TUPLE_CP(src, dest) \
+    (void)memcpy(dest, src, sizeof(qe_tuple_t))
 
 static QEINLINE void summary_empty(qe_summary_t *summary);
 
@@ -78,16 +85,55 @@ summary_sort(qe_summary_t *summary)
     QE_SUMMARY_SET_FLAG(summary, QE_SUMMARY_F_SORTED);
 }
 
-void
+int
 summary_compress(qe_summary_t *summary, qe_uint b)
 {
     const qe_uint bsize = summary->pos;
+    double factor;
+    qe_tuple_t *tpl;
+    qe_tuple_t *out_tuples;
+    qe_uint out_pos, out_size, prev_rank, i, n;
+
+    assert(b != 0);
+
+    factor = bsize / b;
 
     if (!QE_SUMMARY_GET_FLAG(summary, QE_SUMMARY_F_SORTED))
         summary_sort(summary);
 
-    /* TODO */
+    out_pos = 0;
+    out_size = b+1;
+    out_tuples = (qe_tuple_t *)malloc(sizeof(qe_tuple_t) * out_size);
+    if (out_tuples == NULL)
+        return QE_ERROR_OOM;
+
+    /* FIXME this is a very naive way of doing things. It may end up as O(b*log(b)),
+     *       but it most certainly shouldn't have to. */
+    /* FIXME This must be swimming in off by ones */
+    prev_rank = 0;
+    for (i = 0; i < out_size; ++i) {
+        const qe_uint rank = i == 0 ? 1 : floor(factor*i);
+        if (rank != prev_rank) {
+            prev_rank = rank;
+            tpl = summary_quantile_query(summary, rank);
+            assert(tpl != NULL);
+            QE_TUPLE_CP(tpl, &out_tuples[out_pos]);
+            /* fprintf(stderr, "!%lu %lu\n", (unsigned long) out_pos, (unsigned long) rank); */
+            ++out_pos;
+        }
+        /*else {
+            fprintf(stderr, "prevrank was %lu\n", (unsigned long)prev_rank);
+        }*/
+    }
+
+    /* Now swap tuple buffer */
+    free(summary->tuples);
+    summary->tuples = out_tuples;
+    summary->pos = out_pos;
+    summary->size = out_size;
+
     QE_SUMMARY_SET_FLAG(summary, QE_SUMMARY_F_COMPRESSED);
+    return QE_OK;
 }
 
 /*
@@ -157,8 +203,5 @@ summary_quantile_query(qe_summary_t *summary, qe_uint rank)
         return t;
     }
 }
-
-#define QE_TUPLE_CP(src, dest) \
-    (void)memcpy(dest, src, sizeof(struct qe_tuple_t))
 
 

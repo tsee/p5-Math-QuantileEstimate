@@ -24,7 +24,7 @@ qe_summary_t *summary_create(qe_uint size);
 int summary_insert(qe_summary_t *summary, qe_float value);
 void summary_free(qe_summary_t *summary);
 void summary_sort(qe_summary_t *summary);
-void summary_compress(qe_summary_t *summary, qe_uint b);
+int summary_compress(qe_summary_t *summary, qe_uint b);
 qe_tuple_t *summary_quantile_query(qe_summary_t *summary, qe_uint rank);
 
 /* tentative */
