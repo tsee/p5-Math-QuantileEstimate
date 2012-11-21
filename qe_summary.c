@@ -139,8 +139,8 @@ summary_compress(qe_summary_t *summary, qe_uint b)
 /*
  * The following binsearch function taken from libgit2 sources and modified:
  *
- * An array-of-pointers implementation of Python's Timsort
- * Based on code by Christopher Swenson under the MIT license
+ * "An array-of-pointers implementation of Python's Timsort
+ * Based on code by Christopher Swenson under the MIT license"
  */
 QEINLINE qe_uint
 summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
@@ -185,8 +185,8 @@ summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
 sort s0 and merge the summaries at all levels {sl } using
 the MERGE operation, denote it as MERGE(S). Then the
 epsilon-approximate quantile for any rank r is the element
-e in MERGE(S) which satisfies: rmin(e) ≥ r − N and
-rmax(e) ≤ r + N .
+e in MERGE(S) which satisfies: rmin(e) ≥ r − eps*N and
+rmax(e) ≤ r + eps*N .
 */
 
 qe_tuple_t *
