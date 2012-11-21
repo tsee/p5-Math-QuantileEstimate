@@ -54,6 +54,7 @@ summary_create(qe_uint size)
     s->pos = 0;
     /* Starts out not sorted and not compressed */
     s->flags = 0;
+    s->epsilon = 0;
 
     return s;
 }
@@ -132,6 +133,7 @@ summary_compress(qe_summary_t *summary, qe_uint b)
     summary->pos = out_pos;
     summary->size = out_size;
 
+    summary->epsilon += 0.5/(double)b;
     QE_SUMMARY_SET_FLAG(summary, QE_SUMMARY_F_COMPRESSED);
     return QE_OK;
 }
@@ -145,9 +147,13 @@ summary_compress(qe_summary_t *summary, qe_uint b)
 QEINLINE qe_uint
 summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
 {
+    const qe_float epsilon_n = QE_SUMMARY_EPSILON_N(summary);
+    const qe_uint minr = ceil(rank - epsilon_n);
+    const qe_uint maxr = floor(rank + epsilon_n);
+
     int l, c, r;
     qe_tuple_t *lx, *cx;
-    qe_uint size = summary->pos;
+    const qe_uint size = summary->pos;
     qe_tuple_t *tuples = summary->tuples;
 
     l = 0;
@@ -163,7 +169,7 @@ summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
 
     cx = &tuples[c];
     while (1) {
-        const int val = rank < cx->lower_rank ? -1 : rank > cx->upper_rank ? 1 : 0;
+        const int val = minr < cx->lower_rank ? -1 : maxr > cx->upper_rank ? 1 : 0;
         if (val < 0) {
             if (c - l <= 1) return c;
             r = c;

@@ -18,6 +18,7 @@ typedef struct qe_summary {
     qe_uint pos;        /* Next index to write to in summary_tuples (IOW number of current tuples) */
     qe_tuple_t *tuples; /* Summary tuple array */
     qe_uint flags;      /* FIXME waste of space... */
+    qe_float epsilon;   /* This is an "epsilon * pos" summary */
 } qe_summary_t;
 
 qe_summary_t *summary_create(qe_uint size);
@@ -32,6 +33,7 @@ qe_summary_t *summary_combine(qe_summary_t *s1, qe_summary_t *s2);
 /* tentative */
 QEINLINE qe_uint summary_rank_binsearch(qe_summary_t *summary, qe_uint rank);
 
+#define QE_SUMMARY_EPSILON_N(summary) ((summary)->epsilon * (summary)->pos)
 
 /* Getting/setting summary flags */
 #define QE_SUMMARY_F_SORTED 1

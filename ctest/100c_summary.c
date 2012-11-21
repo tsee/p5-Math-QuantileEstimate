@@ -224,7 +224,7 @@ check_epsilon_n_summary(qe_summary_t *s, qe_float epsilon_n, qe_float true_media
         const float rdiff = s->tuples[i].upper_rank - s->tuples[i-1].lower_rank;
         sprintf(msg, "Step %lu: Small enough for summary with epsilon_n=%f",
                 (unsigned long)i, (float)epsilon_n);
-        if (ok_m(rdiff <= epsilon_n, msg) == 0) {
+        if (ok_m(rdiff <= epsilon_n+1e-9, msg) == 0) {
             res = 0;
             printf("# Expected '%i' to be smaller than or equal to '%f'\n", (int)rdiff, (float)epsilon_n);
         }
