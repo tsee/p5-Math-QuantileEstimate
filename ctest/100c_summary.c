@@ -3,11 +3,13 @@
 #include <quant_est.h>
 #include <qe_summary.h>
 #include <assert.h>
+#include <math.h>
 
 #include "mytap.h"
 
 void basic_summary_tests();
 void summary_combine_tests();
+int check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n);
 
 int
 main ()
@@ -194,7 +196,35 @@ summary_combine_tests()
     CHECK_TUPLE(tout, 6, 15., 13, 15);
     CHECK_TUPLE(tout, 7, 17., 16, 16);
 
+    check_epsilon_n_summary(s1, 3);
+    check_epsilon_n_summary(s2, 3);
+    check_epsilon_n_summary(sout, 3*2);
+
     summary_free(s1);
     summary_free(s2);
     summary_free(sout);
+}
+
+int
+check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n)
+{
+    qe_uint i, n;
+    char msg[1024];
+    int res = 1;
+
+    n = s->pos;
+
+    if (n <= 1)
+        return 1;
+
+    for (i = 1; i < n; ++i) {
+        const long rdiff = s->tuples[i].upper_rank - s->tuples[i-1].lower_rank;
+        sprintf(msg, "Step %lu: Small enough for summary with epsilon_n%lu",
+                (unsigned long)i, (unsigned long)epsilon_n);
+        if (ok_m(rdiff <= epsilon_n, msg) == 0) {
+            res = 0;
+            printf("# Expected '%i' to be smaller than or equal to '%lu'\n", (int)rdiff, (unsigned long)epsilon_n);
+        }
+    }
+    return res;
 }
