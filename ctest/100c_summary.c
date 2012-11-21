@@ -9,7 +9,7 @@
 
 void basic_summary_tests();
 void summary_combine_tests();
-int check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n);
+int check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n, qe_float true_median);
 
 int
 main ()
@@ -196,9 +196,9 @@ summary_combine_tests()
     CHECK_TUPLE(tout, 6, 15., 13, 15);
     CHECK_TUPLE(tout, 7, 17., 16, 16);
 
-    check_epsilon_n_summary(s1, 3);
-    check_epsilon_n_summary(s2, 3);
-    check_epsilon_n_summary(sout, 3*2);
+    check_epsilon_n_summary(s1, 3, 4);
+    check_epsilon_n_summary(s2, 3, 7);
+    check_epsilon_n_summary(sout, 3*2, 7);
 
     summary_free(s1);
     summary_free(s2);
@@ -206,9 +206,10 @@ summary_combine_tests()
 }
 
 int
-check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n)
+check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n, qe_float true_median)
 {
     qe_uint i, n;
+    qe_tuple_t *t;
     char msg[1024];
     int res = 1;
 
@@ -226,5 +227,10 @@ check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n)
             printf("# Expected '%i' to be smaller than or equal to '%lu'\n", (int)rdiff, (unsigned long)epsilon_n);
         }
     }
+
+    t = summary_quantile_query(s, floor(s->pos*0.5));
+    ok(fabs(t->value - true_median) < epsilon_n,
+       "Check that residual from true median is within epsilon_n");
+
     return res;
 }
