@@ -9,7 +9,7 @@
 
 void basic_summary_tests();
 void summary_combine_tests();
-int check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n, qe_float true_median);
+int check_epsilon_n_summary(qe_summary_t *s, qe_float epsilon_n, qe_float true_median);
 
 int
 main ()
@@ -132,7 +132,9 @@ basic_summary_tests()
     summary_insert(s, 1000.);
     summary_sort(s);
     */
-    summary_compress(s, 2);
+    check_epsilon_n_summary(s, 1., 2.);
+    summary_compress(s, 2); /* FIXME buggy compress? */
+    check_epsilon_n_summary(s, 1. + 1./(2.*2.), 2.);
 
     summary_free(s);
 }
@@ -206,7 +208,7 @@ summary_combine_tests()
 }
 
 int
-check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n, qe_float true_median)
+check_epsilon_n_summary(qe_summary_t *s, qe_float epsilon_n, qe_float true_median)
 {
     qe_uint i, n;
     qe_tuple_t *t;
@@ -219,18 +221,22 @@ check_epsilon_n_summary(qe_summary_t *s, qe_uint epsilon_n, qe_float true_median
         return 1;
 
     for (i = 1; i < n; ++i) {
-        const long rdiff = s->tuples[i].upper_rank - s->tuples[i-1].lower_rank;
-        sprintf(msg, "Step %lu: Small enough for summary with epsilon_n%lu",
-                (unsigned long)i, (unsigned long)epsilon_n);
+        const float rdiff = s->tuples[i].upper_rank - s->tuples[i-1].lower_rank;
+        sprintf(msg, "Step %lu: Small enough for summary with epsilon_n=%f",
+                (unsigned long)i, (float)epsilon_n);
         if (ok_m(rdiff <= epsilon_n, msg) == 0) {
             res = 0;
-            printf("# Expected '%i' to be smaller than or equal to '%lu'\n", (int)rdiff, (unsigned long)epsilon_n);
+            printf("# Expected '%i' to be smaller than or equal to '%f'\n", (int)rdiff, (float)epsilon_n);
         }
     }
 
     t = summary_quantile_query(s, floor(s->pos*0.5));
-    ok(fabs(t->value - true_median) < epsilon_n,
-       "Check that residual from true median is within epsilon_n");
+    if (ok_m(fabs(t->value - true_median) <= epsilon_n,
+             "Check that residual from true median is within epsilon_n"))
+    {
+        printf("# Expected '%f' to be smaller than or equal to '%f'\n",
+               (float)fabs(t->value - true_median), (float)epsilon_n);
+    }
 
     return res;
 }
