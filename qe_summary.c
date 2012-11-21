@@ -236,7 +236,7 @@ summary_combine(qe_summary_t *s1, qe_summary_t *s2)
                 /* no value in s2 smaller than this */
                 out_tuple->lower_rank = x->lower_rank;
                 /* Kind of assumes that the summaries aren't empty: */
-                out_tuple->upper_rank = x->upper_rank + tuples2[i2].upper_rank;
+                out_tuple->upper_rank = x->upper_rank + tuples2[i2].upper_rank - 1;
             }
             else if (i2 == n2) { /* s2 done */
                 /* prev value of s2 smaller than this,
@@ -260,7 +260,7 @@ summary_combine(qe_summary_t *s1, qe_summary_t *s2)
                 /* no value in s1 smaller than this */
                 out_tuple->lower_rank = x->lower_rank;
                 /* Kind of assumes that the summaries aren't empty: */
-                out_tuple->upper_rank = x->upper_rank + tuples1[i1].upper_rank;
+                out_tuple->upper_rank = x->upper_rank + tuples1[i1].upper_rank - 1;
             }
             else if (i1 == n1) { /* s1 done */
                 /* prev value of s1 smaller than this,
@@ -276,6 +276,8 @@ summary_combine(qe_summary_t *s1, qe_summary_t *s2)
             }
             ++i2;
         }
+        /* printf("# v=%9i l=%9i u=%9i\n", (int)out_tuple->value,
+         *        (int)out_tuple->lower_rank, (int)out_tuple->upper_rank); */
         out_tuple++;
     }
 

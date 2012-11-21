@@ -179,14 +179,14 @@ summary_combine_tests()
     /* all filled up */
     s1->pos = s2->pos = n;
 
-    /* shouldn't do anything due to how we filled manually... */
-    summary_sort(s1);
-    summary_sort(s2);
+    /* Prevent sorting (which assigns ranks due to how we filled manually */
+    QE_SUMMARY_SET_FLAG(s1, QE_SUMMARY_F_SORTED);
+    QE_SUMMARY_SET_FLAG(s2, QE_SUMMARY_F_SORTED);
 
     sout = summary_combine(s1, s2);
     tout = sout->tuples;
     CHECK_TUPLE(tout, 0, 1., 1, 1);
-    CHECK_TUPLE(tout, 1, 2., 2, 2);
+    CHECK_TUPLE(tout, 1, 2., 2, 3);
     CHECK_TUPLE(tout, 2, 4., 4, 6);
     CHECK_TUPLE(tout, 3, 7., 6, 8);
     CHECK_TUPLE(tout, 4, 8., 8, 11);
