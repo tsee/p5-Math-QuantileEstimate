@@ -284,6 +284,7 @@ summary_combine(qe_summary_t *s1, qe_summary_t *s2)
     /* FIXME When one or the other streams are exhausted, we do not need to
      *       repeatedly check them and can break the main while loop and
      *       go into a special purpose loop to finish up. */
+    QE_SUMMARY_SET_FLAG(stot, QE_SUMMARY_F_SORTED);
 
     return stot;
 }
