@@ -180,6 +180,15 @@ summary_rank_binsearch(qe_summary_t *summary, qe_uint rank)
 }
 
 
+/* FIXME
+ * To answer a query of any rank r using S, we first
+sort s0 and merge the summaries at all levels {sl } using
+the MERGE operation, denote it as MERGE(S). Then the
+epsilon-approximate quantile for any rank r is the element
+e in MERGE(S) which satisfies: rmin(e) ≥ r − N and
+rmax(e) ≤ r + N .
+*/
+
 qe_tuple_t *
 summary_quantile_query(qe_summary_t *summary, qe_uint rank)
 {
