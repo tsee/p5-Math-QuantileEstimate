@@ -1,10 +1,6 @@
 #ifndef QE_DEFS_H_
 #define QE_DEFS_H_
 
-#define QE_OK 0
-#define QE_ERROR_FULL 1
-#define QE_ERROR_OOM 42
-
 #if DEBUG
 #   define QEINLINE
 #else
