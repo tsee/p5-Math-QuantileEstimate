@@ -182,12 +182,8 @@ gks_tuple_cmp(const void *p1, const void *p2)
   tuple_t *t1 = (tuple_t *)p1;
   tuple_t *t2 = (tuple_t *)p2;
 
-  /* FIXME check if stable sort is really necessary */
-  return(
-      (t1->v < t2->v)  ? -1
-    : (t1->v == t2->v) ? 0
-    : 1
-  );
+  /* Do not need stable sort */
+  return (t1->v < t2->v)  ? -1 : 1;
 }
 
 QE_STATIC_INLINE int
