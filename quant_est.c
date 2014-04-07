@@ -1,6 +1,7 @@
 #include "quant_est.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <math.h>
 
@@ -175,9 +176,9 @@ gks_prune(gksummary_t *gk, int b)
     elt = tuples[gk_idx];
 
     /* FIXME what's the r != nil supposed to do in the Go version? */
-    if (/*r != nil &&*/ ptrarray_peek(resgk)->v == elt->v) {
+    if (/*r != nil &&*/ ((tuple_t *)ptrarray_peek(resgk))->v == elt->v) {
       /* ignore if we've already seen it */
-      continue
+      continue;
     }
 
     tmp_tuple = gktuple_clone(elt); /* TODO consider if that allocation could be avoided */
@@ -194,6 +195,20 @@ gks_prune(gksummary_t *gk, int b)
 /**************************************************
  * stream_t functions
  **************************************************/
+
+QE_STATIC_INLINE void
+gkstr_free(stream_t *stream)
+{
+  size_t i;
+  const size_t n = ptrarray_nelems(stream->summaries);
+  gksummary_t **t = (gksummary_t **)ptrarray_data_pointer(stream->summaries);
+
+  for (i = 0; i < n; ++i)
+    gks_free(t[i]);
+
+  ptrarray_free(stream->summaries);
+  free(stream);
+}
 
 QE_STATIC_INLINE stream_t *
 gkstr_new(double epsilon, int n)
@@ -227,20 +242,6 @@ gkstr_new(double epsilon, int n)
   ptrarray_push(stream->summaries, gk);
 
   return stream;
-}
-
-QE_STATIC_INLINE void
-gkstr_free(stream_t *stream)
-{
-  size_t i;
-  const size_t n = ptrarray_nelems(stream->summaries);
-  gksummary_t **t = (gksummary_t **)ptrarray_data_pointer(stream->summaries);
-
-  for (i = 0; i < n; ++i)
-    gks_free(t[i]);
-
-  ptrarray_free(stream->summaries);
-  free(stream);
 }
 
 static int
@@ -279,7 +280,7 @@ gkstr_update(stream_t *stream, double e)
 
   /* TODO nlogn */
   /* FIXME validate ptrs and derefs... */
-  qsort((void *)*tuples, n, sizeof(tuple_t *), gkstr_tuple_cmp);
+  qsort((void *)*tuples, ntuples, sizeof(tuple_t *), gkstr_tuple_cmp);
 
   gks_merge_values(gk);
 
@@ -288,11 +289,13 @@ gkstr_update(stream_t *stream, double e)
 
   n_summaries = ptrarray_nelems(stream->summaries);
   for (k = 1; k < n_summaries; ++k) {
+    gksummary_t *tmp;
+
     if (gks_len(gks[k]) == 0) {
       /* --------------------------------------
        * Empty: put compressed summary in sk
        * -------------------------------------- */
-      gks_free(gks[k]); /* FIXME this is just terrible */
+      gks_free(gks[k]); /* FIXME this is just terrible. Such a waste! */
       gks[k] = tmp_summary; /* Store it */
       return;
     }
@@ -301,13 +304,20 @@ gkstr_update(stream_t *stream, double e)
      * sk contained a compressed summary
      * -------------------------------------- */
 
-    /* TODO convert remaining Go 'till end of scope */
-    tmp := merge(s.summary[k], sc, s.epsilon, s.b*(1<<uint(k)), s.b*(1<<uint(k))) // here we're merging two summaries with s.b * 2^k entries each
-    tmp_summary = gks_prune(tmp, (stream->b+1)/2+1)
-    /* NOTE: sc is used in next iteration
+    /* FIXME check for who owns what in this dance and how many free()'s are really missing */
+    /* here we're merging two summaries with s.b * 2^k entries each */
+    tmp = gks_merge(
+      gks[k],
+      tmp_summary,
+      stream->epsilon,
+      stream->b * (1<<((unsigned int)k)),
+      stream->b * (1<<((unsigned int)k))
+    );
+    tmp_summary = gks_prune(tmp, (stream->b+1)/2+1);
+    /* NOTE: tmp_summary is used in next iteration
      * -  it is passed to the next level ! */
 
-    s.summary[k] = s.summary[k][:0] // Re-initialize
+    gks_clear(gks[k]); /* Re-initialize */
   }
 
   /* fell off the end of our loop -- no more stream->summaries entries */
