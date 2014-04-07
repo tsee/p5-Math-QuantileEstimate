@@ -7,6 +7,8 @@
 #   define QEINLINE inline
 #endif
 
+#define QE_STATIC_INLINE static QEINLINE
+
 #ifndef STMT_START
 #   define STMT_START	do
 #endif
