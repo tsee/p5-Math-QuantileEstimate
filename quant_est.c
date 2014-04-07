@@ -28,7 +28,7 @@ typedef struct {
 
 
 QE_STATIC_INLINE tuple_t *
-gks_new_tuple()
+gktuple_new()
 {
   tuple_t *t = calloc(1, sizeof(tuple_t));
 
@@ -39,7 +39,7 @@ gks_new_tuple()
 }
 
 QE_STATIC_INLINE tuple_t *
-gks_clone_tuple(tuple_t *proto)
+gktuple_clone(tuple_t *proto)
 {
   tuple_t *res = malloc(sizeof(tuple_t));
   if (res == NULL)
@@ -178,7 +178,7 @@ gks_update(stream_t *stream, double e)
   const size_t ntuples = gks_len(gk);
   tuple_t **tuples = QE_GET_TUPLES(gk);
 
-  tuple = gks_new_tuple();
+  tuple = gktuple_new();
   if (tuple == NULL)
     return 1;
 
@@ -249,7 +249,7 @@ gks_prune(gksummary_t *gk, int b)
   if (resgk == NULL)
     return NULL;
 
-  elt = gks_clone_tuple(tuples[0]); /* TODO consider if that allocation could be avoided */
+  elt = gktuple_clone(tuples[0]); /* TODO consider if that allocation could be avoided */
   if (elt == NULL)
     return NULL;
   ptrarray_push(resgk, elt);
@@ -280,7 +280,7 @@ gks_prune(gksummary_t *gk, int b)
       continue
     }
 
-    tmp_tuple = gks_clone_tuple(elt); /* TODO consider if that allocation could be avoided */
+    tmp_tuple = gktuple_clone(elt); /* TODO consider if that allocation could be avoided */
     if (tmp_tuple == NULL)
       return NULL;
     ptrarray_push(resgk, tmp_tuple);
