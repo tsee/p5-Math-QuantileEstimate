@@ -56,23 +56,6 @@ gks_len(gksummary_t *gk)
 }
 
 QE_STATIC_INLINE int
-gks_less(gksummary_t *gk, size_t i, size_t j)
-{
-  tuple_t **d = QE_GET_TUPLES(gk);
-  return d[i]->v < d[j]->v;
-}
-
-QE_STATIC_INLINE void
-gks_swap(gksummary_t *gk, size_t i, size_t j)
-{
-  tuple_t *tmp;
-  tuple_t **d = QE_GET_TUPLES(gk);
-  tmp = d[i];
-  d[i] = d[j];
-  d[j] = tmp;
-}
-
-QE_STATIC_INLINE int
 gks_size(gksummary_t *gk)
 {
   size_t i;
