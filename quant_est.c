@@ -254,6 +254,7 @@ QE_STATIC_INLINE gksummary_t *
 gks_prune(gksummary_t *gk, int b)
 {
   tuple_t *elt;
+  tuple_t *tmp_tuple;
   gksummary_t *resgk;
   const size_t input_n_tuples = gks_len(gk);
   tuple_t **tuples = QE_GET_TUPLES(gk);
@@ -266,6 +267,8 @@ gks_prune(gksummary_t *gk, int b)
     return NULL;
 
   elt = gks_clone_tuple(tuples[0]); /* TODO consider if that allocation could be avoided */
+  if (elt == NULL)
+    return NULL;
   ptrarray_push(resgk, elt);
 
   for (i = 1; i <= b; ++i) {
@@ -293,8 +296,11 @@ gks_prune(gksummary_t *gk, int b)
       /* ignore if we've already seen it */
       continue
     }
-    // FIXME clone elt!
-    ptrarray_push(resgk, elt);
+
+    tmp_tuple = gks_clone_tuple(elt); /* TODO consider if that allocation could be avoided */
+    if (tmp_tuple == NULL)
+      return NULL;
+    ptrarray_push(resgk, tmp_tuple);
   }
 
   return resgk;
