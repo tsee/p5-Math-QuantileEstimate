@@ -150,10 +150,10 @@ gks_prune(gksummary_t *gk, int b)
   if (resgk == NULL)
     return NULL;
 
-  elt = gktuple_clone(tuples[0]); /* TODO consider if that allocation could be avoided */
-  if (elt == NULL)
+  tmp_tuple = gktuple_clone(tuples[0]); /* TODO consider if that allocation could be avoided */
+  if (tmp_tuple == NULL)
     return NULL;
-  ptrarray_push(resgk, elt);
+  ptrarray_push(resgk, tmp_tuple);
 
   for (i = 1; i <= b; ++i) {
     const int rank = (int)((double)gks_size(gk) * (double)i / (double)b);
@@ -175,8 +175,7 @@ gks_prune(gksummary_t *gk, int b)
      *       the Go version */
     elt = tuples[gk_idx];
 
-    /* FIXME what's the r != nil supposed to do in the Go version? */
-    if (/*r != nil &&*/ ((tuple_t *)ptrarray_peek(resgk))->v == elt->v) {
+    if (((tuple_t *)ptrarray_peek(resgk))->v == elt->v) {
       /* ignore if we've already seen it */
       continue;
     }
@@ -188,6 +187,88 @@ gks_prune(gksummary_t *gk, int b)
   }
 
   return resgk;
+}
+
+
+/* This is the Merge algorithm from
+ * http://www.cs.ubc.ca/~xujian/paper/quant.pdf .  It is much simpler than the
+ * MERGE algorithm at
+ * http://www.mathcs.emory.edu/~cheung/Courses/584-StreamDB/Syllabus/08-Quantile/Greenwald-D.html
+ * or "COMBINE" in http://www.cis.upenn.edu/~mbgreen/papers/chapter.pdf
+ * "Quantiles and Equidepth Histograms over Streams" (Greenwald, Khanna 2005) */
+/* Takes ownership of the input summaries */
+QE_STATIC_INLINE gksummary_t *
+gks_merge(gksummary_t * s1, gksummary_t *s2, double epsilon, int N1, int N2)
+{
+  gksummary_t *smerge;
+  size_t i1 = 0;
+  size_t i2 = 0;
+  int rmin = 0;
+  int k = 0;
+  tuple_t **s1t = QE_GET_TUPLES(s1);
+  tuple_t **s2t = QE_GET_TUPLES(s2);
+  const size_t n1 = gks_len(s1);
+  const size_t n2 = gks_len(s2);
+  tuple_t *newt;
+  tuple_t *t = NULL;
+
+  if (gks_len(s1) == 0) {
+    gks_free(s1);
+    return s2;
+  }
+
+  if (gks_len(s2) == 0) {
+    gks_free(s2);
+    return s1;
+  }
+
+  s1t[0]->g = 1;
+  s2t[0]->g = 1;
+
+  while (i1 < n1 || i2 < n2) {
+    if (i1 < n1 && i2 < n2) {
+      if (s1t[i1]->v <= s2t[i2]->v)
+        t = s1t[i1++];
+      else
+        t = s2t[i2++];
+    }
+    else if (i1 < n1 && i2 >= n2) { /* technically, just i1 < n1 should be enough */
+      t = s1t[i1++];
+    }
+    else if (i1 >= n1 && i2 < n2) { /* technically, just i2 < n2 needed */
+      t = s2t[i2++];
+    }
+    else {
+      abort(); /* never happens */
+    }
+
+    newt = gktuple_new();
+    newt->v = t->v;
+    newt->g = t->g;
+
+    ++k;
+    /* If you're following along with the paper, the Algorithm has
+     * a typo on lines 9 and 11.  The summation is listed as going
+     * from 1..k , which doesn't make any sense.  It should be
+     * 1..l, the number of summaries we're merging.  In this case,
+     * l=2, so we just add the sizes of the sets. */
+    if (k == 1) {
+      newt->delta = (int)(epsilon * ((double)N1 + (double)N2));
+    }
+    else {
+      const int rmax = rmin + (int)(2*epsilon * ((double)N1 + (double)N2));
+      rmin += newt->g;
+      newt->delta = rmax - rmin;
+      ptrarray_push(smerge, newt);
+    }
+  } /* end while */
+
+
+  /* all done
+   * The merged list might have duplicate elements -- merge them. */
+  gks_merge_values(smerge);
+
+  return smerge;
 }
 
 
@@ -304,8 +385,8 @@ gkstr_update(stream_t *stream, double e)
      * sk contained a compressed summary
      * -------------------------------------- */
 
-    /* FIXME check for who owns what in this dance and how many free()'s are really missing */
     /* here we're merging two summaries with s.b * 2^k entries each */
+    /* The gks_merge takes ownership of the two summaries passed in */
     tmp = gks_merge(
       gks[k],
       tmp_summary,
@@ -317,7 +398,7 @@ gkstr_update(stream_t *stream, double e)
     /* NOTE: tmp_summary is used in next iteration
      * -  it is passed to the next level ! */
 
-    gks_clear(gks[k]); /* Re-initialize */
+    gks[k] = gks_new(); /* Re-initialize FIXME avoid alloc */
   }
 
   /* fell off the end of our loop -- no more stream->summaries entries */
