@@ -24,7 +24,7 @@ struct stream_struct {
   summaries_t *summaries; /* AoA of tuples */
   double epsilon;
   int n;
-  int b; /* block size */
+  size_t b; /* block size */
 };
 
 
@@ -155,8 +155,8 @@ gks_prune(gksummary_t *gk, int b)
     return NULL;
   ptrarray_push(resgk, tmp_tuple);
 
-  for (i = 1; i <= b; ++i) {
-    const int rank = (int)((double)gks_size(gk) * (double)i / (double)b);
+  for (i = 1; i <= (size_t)b; ++i) {
+    const size_t rank = (size_t)((double)gks_size(gk) * (double)i / (double)b);
 
     /* find an element of rank 'rank' in gk */
     while (gk_idx < input_n_tuples-1) {
@@ -224,6 +224,10 @@ gks_merge(gksummary_t * s1, gksummary_t *s2, double epsilon, int N1, int N2)
 
   s1t[0]->g = 1;
   s2t[0]->g = 1;
+
+  smerge = gks_new();
+  if (smerge == NULL)
+    return NULL;
 
   while (i1 < n1 || i2 < n2) {
     if (i1 < n1 && i2 < n2) {
@@ -350,9 +354,12 @@ gkstr_update(stream_t *stream, double e)
   tuple = gktuple_new();
   if (tuple == NULL)
     return 1;
+  tuple->v = e;
+  tuple->g = 1;
+  tuple->delta = 0;
 
   ptrarray_push(gk, tuple);
-  if (ntuples+1 < stream->b)
+  if (ntuples+1 < (size_t)stream->b)
     return 0; /* done */
 
   /* -----------------------------------
@@ -378,7 +385,7 @@ gkstr_update(stream_t *stream, double e)
        * -------------------------------------- */
       gks_free(gks[k]); /* FIXME this is just terrible. Such a waste! */
       gks[k] = tmp_summary; /* Store it */
-      return;
+      return 0;
     }
 
     /* --------------------------------------
@@ -403,6 +410,7 @@ gkstr_update(stream_t *stream, double e)
 
   /* fell off the end of our loop -- no more stream->summaries entries */
   ptrarray_push(stream->summaries, tmp_summary);
+  return 0;
 }
 
 /* !! Must call Finish to allow processing queries */

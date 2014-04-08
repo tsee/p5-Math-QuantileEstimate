@@ -31,7 +31,7 @@ if (not $DEBUG) {
 }
 else {
   if ($DEBUG) {
-    $define .= ' -Wall -Wextra -O0 -ggdb -DDEBUG';
+    $define .= ' -Wall -Wextra -O0 -ggdb -DDEBUG -Wno-variadic-macros -Wno-unused-function';
   }
   if ($DEBUG > 1) {
     $define .= ' -pedantic';
@@ -84,7 +84,7 @@ MAKE_FRAG
     foreach my $i (0..$#test_cfiles) {
       my $file = $test_cfiles[$i];
       my $exefile = $test_exefiles[$i];
-      $make_frag .= "\t\$(CC) $define -I. $file qe*.o quant_est.o -lm -o $exefile\n";
+      $make_frag .= "\t\$(CC) $define -I. $file quant_est.o -lm -o $exefile\n";
     }
     return $make_frag;
   }
