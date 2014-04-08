@@ -50,7 +50,7 @@ gktuple_clone(tuple_t *proto)
   if (res == NULL)
     return NULL;
 
-  memcpy(res, proto, sizeof(tuple_t));
+  *res = *proto;
   return res;
 }
 
@@ -137,15 +137,17 @@ gks_merge_values(gksummary_t *gk)
 QE_STATIC_INLINE gksummary_t *
 gks_prune(gksummary_t *gk, int b)
 {
-  tuple_t *elt;
   tuple_t *tmp_tuple;
   gksummary_t *resgk;
-  const size_t input_n_tuples = gks_len(gk);
+  const int input_n_tuples = gks_len(gk);
   tuple_t **tuples = QE_GET_TUPLES(gk);
-  size_t gk_idx = 0;
+  int gk_idx = 0;
   size_t gk_rmin = 1;
   size_t i;
-  
+
+  if (input_n_tuples == 0)
+    return NULL;
+
   resgk = gks_new(4);
   if (resgk == NULL)
     return NULL;
@@ -171,19 +173,19 @@ gks_prune(gksummary_t *gk, int b)
     if (gk_idx >= input_n_tuples)
       gk_idx = input_n_tuples - 1;
 
-    /* FIXME check whether this creates a new variable WITHIN this scope only in
-     *       the Go version */
-    elt = tuples[gk_idx];
+    {
+      tuple_t *elt = tuples[gk_idx];
 
-    if (((tuple_t *)ptrarray_peek(resgk))->v == elt->v) {
-      /* ignore if we've already seen it */
-      continue;
+      if (((tuple_t *)ptrarray_peek(resgk))->v == elt->v) {
+        /* ignore if we've already seen it */
+        continue;
+      }
+
+      tmp_tuple = gktuple_clone(elt); /* TODO consider if that allocation could be avoided */
+      if (tmp_tuple == NULL)
+        return NULL;
+      ptrarray_push(resgk, tmp_tuple);
     }
-
-    tmp_tuple = gktuple_clone(elt); /* TODO consider if that allocation could be avoided */
-    if (tmp_tuple == NULL)
-      return NULL;
-    ptrarray_push(resgk, tmp_tuple);
   }
 
   return resgk;
