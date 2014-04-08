@@ -20,12 +20,12 @@ typedef ptrarray_t gksummary_t;
 
 typedef ptrarray_t summaries_t;
 
-typedef struct {
+struct stream_struct {
   summaries_t *summaries; /* AoA of tuples */
   double epsilon;
   int n;
   int b; /* block size */
-} stream_t;
+};
 
 
 /**************************************************
@@ -277,7 +277,7 @@ gks_merge(gksummary_t * s1, gksummary_t *s2, double epsilon, int N1, int N2)
  * stream_t functions
  **************************************************/
 
-QE_STATIC_INLINE void
+void
 gkstr_free(stream_t *stream)
 {
   size_t i;
@@ -291,7 +291,7 @@ gkstr_free(stream_t *stream)
   free(stream);
 }
 
-QE_STATIC_INLINE stream_t *
+stream_t *
 gkstr_new(double epsilon, int n)
 {
   const double epsN = epsilon * (double)n;
@@ -335,7 +335,7 @@ gkstr_tuple_cmp(const void *p1, const void *p2)
   return (t1->v < t2->v)  ? -1 : 1;
 }
 
-QE_STATIC_INLINE int
+int
 gkstr_update(stream_t *stream, double e)
 {
   tuple_t *tuple;
@@ -405,5 +405,59 @@ gkstr_update(stream_t *stream, double e)
   ptrarray_push(stream->summaries, tmp_summary);
 }
 
+/* !! Must call Finish to allow processing queries */
+void
+gkstream_finish(stream_t *s)
+{
+  gksummary_t **gks = (gksummary_t **)ptrarray_data_pointer(s->summaries);
+  gksummary_t *gk = gks[0];
+  const size_t ntuples = gks_len(gk);
+  tuple_t **tuples = QE_GET_TUPLES(gk);
+  size_t size;
+  size_t i;
+  size_t n_summaries = ptrarray_nelems(s->summaries);
+
+  /* TODO As per Damian, wouldn't have to merge into the summary at [0]. Could just use fresh summary to keep stream updateable. */
+  qsort((void *)*tuples, ntuples, sizeof(tuple_t *), gkstr_tuple_cmp);
+  gks_merge_values(gk);
+  size = gks_len(gk);
+
+  for (i = 1; i < n_summaries; ++i) {
+    gk = gks_merge(gk, gks[i], s->epsilon, size, s->b * (1<<((unsigned int)i)));
+    size += s->b * (1 << ((unsigned int)i));
+  }
+  gks[0] = gk; /* TODO see above */
+}
+
+/* GK query */
+double
+gkstream_query(stream_t *s, double q)
+{
+  /* convert quantile to rank */
+  const int r = (int)(q * (double)s->n);
+  int rmin = 0;
+  int rmin_next;
+  size_t i;
+  gksummary_t **gks = (gksummary_t **)ptrarray_data_pointer(s->summaries);
+  gksummary_t *gk = gks[0];
+  const size_t ntuples = gks_len(gk);
+  tuple_t **tuples = QE_GET_TUPLES(gk);
+
+
+  for (i = 0; i < ntuples; ++i) {
+    tuple_t *t = tuples[i];
+
+    if (i+1 == ntuples)
+      return t->v;
+
+    rmin += t->g;
+    rmin_next = rmin + tuples[i+1]->g;
+
+    if (rmin <= r && r < rmin_next)
+      return t->v;
+  }
+
+  abort(); /* not reached */
+}
 
 
