@@ -59,9 +59,9 @@ gktuple_clone(tuple_t *proto)
  **************************************************/
 
 QE_STATIC_INLINE gksummary_t *
-gks_new()
+gks_new(size_t nprealloc)
 {
-  return ptrarray_make(8, PTRARRAYf_FREE_ELEMS);
+  return ptrarray_make(nprealloc, PTRARRAYf_FREE_ELEMS);
 }
 
 QE_STATIC_INLINE void
@@ -146,7 +146,7 @@ gks_prune(gksummary_t *gk, int b)
   size_t gk_rmin = 1;
   size_t i;
   
-  resgk = gks_new();
+  resgk = gks_new(4);
   if (resgk == NULL)
     return NULL;
 
@@ -225,7 +225,7 @@ gks_merge(gksummary_t * s1, gksummary_t *s2, double epsilon, int N1, int N2)
   s1t[0]->g = 1;
   s2t[0]->g = 1;
 
-  smerge = gks_new();
+  smerge = gks_new(n1);
   if (smerge == NULL)
     return NULL;
 
@@ -319,7 +319,7 @@ gkstr_new(double epsilon, int n)
     return NULL;
   }
 
-  gk = gks_new();
+  gk = gks_new((size_t)b);
   if (gk == NULL) {
     gkstr_free(stream);
     return NULL;
@@ -405,7 +405,7 @@ gkstr_update(stream_t *stream, double e)
     /* NOTE: tmp_summary is used in next iteration
      * -  it is passed to the next level ! */
 
-    gks[k] = gks_new(); /* Re-initialize FIXME avoid alloc */
+    gks[k] = gks_new(stream->b); /* Re-initialize FIXME avoid alloc */
   }
 
   /* fell off the end of our loop -- no more stream->summaries entries */
